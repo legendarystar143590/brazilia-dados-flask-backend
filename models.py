@@ -787,13 +787,15 @@ class RegisteredWebsite(db.Model):
         return f"<RegisteredWebsite {self.id}>"
 
 class ShopInfo(db.Model):
+    __bind_key__ = 'shopify'
     __tablename__="shop_info"
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
     shop = db.Column(db.String(255), nullable=False)
     state = db.Column(db.String(255), nullable=False)
     code = db.Column(db.String(255), nullable=True)
-    access_token = db.Column(db.String(255), nullable=True)
+    shop_token = db.Column(db.String(255), nullable=True)
+    shopify_token = db.Column(db.String(255), nullable=True)
     time_stamp = db.Column(db.String(255), nullable=True)
     hmac_header = db.Column(db.String(255), nullable=True)
 
@@ -806,10 +808,10 @@ class ShopInfo(db.Model):
         db.session.add(self)
         db.session.commit()
 
-    def update_shop_info(shop, code, access_token):
+    def update_shop_info(shop, shop_token, shopify_token):
         db_shop = ShopInfo.query.filter_by(shop = shop).first()
-        db_shop.code = code
-        db_shop.access_token = access_token
+        db_shop.shop_token = shop_token
+        db_shop.shopify_token = shopify_token
         db.session.commit()
 
     @staticmethod
@@ -830,7 +832,8 @@ class ShopInfo(db.Model):
             'shop':self.shop,
             'state':self.state,
             'code':self.code,
-            'access_token':self.access_token,
+            'shop_token':self.shop_token,
+            'shopify_token':self.shopify_token,
             'time_stamp':self.time_stamp,
             'hmac_header':self.hmac_header
         }
@@ -839,6 +842,7 @@ class ShopInfo(db.Model):
         return f"<ShopInfo {self.id}>"
     
 class ProudctsTable(db.Model):
+    __bind_key__ = 'shopify'
     __tablename__="shop_products"
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)

@@ -29,23 +29,28 @@ def verify_webhook(data: bytes, hmac_header: str) -> bool:
 @shopify_blueprint.route('/shopifyinstall', methods=['GET'])
 def install():
     try:
-        headers = dict(request.headers)
-        body = request.get_data()
-        print("header--->>>>>", headers, "body--->>>>>", body)
-        shop = request.args.get('shop')
-        timestamp = request.args.get('timestamp')
-        hmac_header = request.args.get('hmac')
-        state = request.args.get('state')
-        # Verify the webhook using the provided parameters
-        data = f'shop={shop}&timestamp={timestamp}&state={state}'.encode('utf-8')
-        if verify_webhook(data, hmac_header):
-            # Store the shop code and state securely (implement your own storage logic)
-            store_shop_data(shop, state)
-            print("Verification successful")
-            # Redirect to Shopify authorization URL
-            return redirect(f'https://{shop}/admin/oauth/authorize?client_id={SHOPIFY_API_KEY}&scope=read_products&redirect_uri={REDIRECT_URI}&state={state}')
+        # headers = dict(request.headers)
+        # body = request.get_data()
+        # print("header--->>>>>", headers, "body--->>>>>", body)
+        # shop = request.args.get('shop')
+        # timestamp = request.args.get('timestamp')
+        # hmac_header = request.args.get('hmac')
+        # state = request.args.get('state')
+        # # Verify the webhook using the provided parameters
+        # data = f'shop={shop}&timestamp={timestamp}&state={state}'.encode('utf-8')
+        # if verify_webhook(data, hmac_header):
+        #     # Store the shop code and state securely (implement your own storage logic)
+        #     store_shop_data(shop, state)
+        #     print("Verification successful")
+        #     # Redirect to Shopify authorization URL
+        #     return redirect(f'https://{shop}/admin/oauth/authorize?client_id={SHOPIFY_API_KEY}&scope=read_products&redirect_uri={REDIRECT_URI}&state={state}')
         
-        return "Verification failed", 403
+        # return "Verification failed", 403
+        shop = request.args.get('shop')
+        shop_token = request.args.get('shopify_shop_token')
+        shopify_token = request.args.get('shopify_token')
+        new_shop = ShopInfo(shop=shop, shop_token=shop_token, shopify_token=shopify_token)
+        print(new_shop)
     except Exception as e:
         print("Error:", e)
         return "An error occurred", 500
@@ -86,14 +91,21 @@ def auth_callback():
         print("Error:", e)
         return "Error occurred", 500
 
-# @shopify_blueprint.route('/active_chatbots', methods=['GET'])
-def get_active_chatbots(shop:str):
+@shopify_blueprint.route('/active_chatbots', methods=['GET'])
+def get_active_chatbots(shop=None):
     try:
-        # shop = request.args.get('shop')
+        if not shop:
+            shop = request.args.get('shop')
+            print("shop", shop)
+            shop_token = request.args.get('shopify_shop_token')
+            print("shop_token", shop_token)
         shop_info = ShopInfo.get_by_shop(shop)
         
         if not shop_info:
             return jsonify({"error": "Please obtain a valid eCommerce license in Aiana to let your website visitors answer questions about your products."}), 403
+        
+        if shop_token != shop_info.shop_token:
+            return jsonify({"error": "Invalid shop token"}), 403
 
         registered_website = RegisteredWebsite.query.filter_by(domain=shop).first()
         if not registered_website:
@@ -170,7 +182,7 @@ def get_access_token(shop: str, code: str) -> str:
     else:
         return None
 
-def get_shopify_products(shop: str, access_token: str) -> list:
+def get_shopify_products(shop: str, shopify_token: str) -> list:
     """
     Retrieve products from Shopify using the provided access token.
     """
@@ -180,7 +192,7 @@ def get_shopify_products(shop: str, access_token: str) -> list:
         new_url = f'https://{shop}/admin/api/2023-04/products.json'
         headers = {
             'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': access_token
+            'X-Shopify-Access-Token': shopify_token
         }
         response = requests.get(new_url, headers=headers)
         if response.status_code == 200:
@@ -217,10 +229,10 @@ def sync_products():
             shops = ShopInfo.query.all()
             print("sync_products()", shops)
             for shop in shops:
-                access_token = shop.access_token
-                if access_token == '':
+                shopify_token = shop.shopify_token
+                if shopify_token == '':
                     continue
-                products = get_shopify_products(shop.shop, access_token)
+                products = get_shopify_products(shop.shop, shopify_token)
                 for product in products:
                     insert_product_data(product, shop.id)
         return jsonify({'message': 'Products synchronized successfully'}), 200
