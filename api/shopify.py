@@ -29,11 +29,13 @@ def verify_webhook(data: bytes, hmac_header: str) -> bool:
 @shopify_blueprint.route('/shopifyinstall', methods=['GET'])
 def install():
     try:
+        headers = dict(request.headers)
+        body = request.get_data()
+        print("header--->>>>>", headers, "body--->>>>>", body)
         shop = request.args.get('shop')
         timestamp = request.args.get('timestamp')
         hmac_header = request.args.get('hmac')
         state = request.args.get('state')
-        print("shop", shop)
         # Verify the webhook using the provided parameters
         data = f'shop={shop}&timestamp={timestamp}&state={state}'.encode('utf-8')
         if verify_webhook(data, hmac_header):
@@ -51,6 +53,9 @@ def install():
 @shopify_blueprint.route('/shopifyauth', methods=['GET'])
 def auth_callback():
     try:
+        headers = dict(request.headers)
+        body = request.get_data()
+        print("header--->>>>>", headers, "body--->>>>>", body)
         code = request.args.get('code')
         shop = request.args.get('shop')
         state = request.args.get('state')

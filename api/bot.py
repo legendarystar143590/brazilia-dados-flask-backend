@@ -301,7 +301,7 @@ def query():
         if bot_id:
             bot = Bot.query.filter_by(id=bot_id).first()
         knowledge_base = bot.knowledge_base
-        result = generate(bot_id, session_id, query, knowledge_base)
+        result = generate(bot_id, session_id, query, knowledge_base, website)
         solve = True
         if "If so, leave me your email" in result or "votre adresse e-mail" in result or "correo electrónico" in result or "laissez-moi votre" in result or "laat me dan je e-mailadres achter" in result:
             solve = False

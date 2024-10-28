@@ -32,10 +32,10 @@ def tiktoken_text_split(text):
     print("Chunks length >>>>", len(chunks))
     return chunks
 
-def generate(bot_id, session_id, query, knowledge_base):
+def generate(bot_id, session_id, query, knowledge_base, website):
     
-
-    result = get_answer(bot_id, session_id, query, knowledge_base)
+    print("Generating the knoledgebase >>>", knowledge_base)
+    result = get_answer(bot_id, session_id, query, knowledge_base, website)
 
     return result
   
