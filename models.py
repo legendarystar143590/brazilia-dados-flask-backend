@@ -799,10 +799,10 @@ class ShopInfo(db.Model):
     time_stamp = db.Column(db.String(255), nullable=True)
     hmac_header = db.Column(db.String(255), nullable=True)
 
-    def __init__(self, shop, state, code):
+    def __init__(self, shop, shop_token, shopify_token):
         self.shop = shop
-        self.state = state
-        self.code = code
+        self.shop_token = shop_token
+        self.shopify_token = shopify_token
 
     def save(self):
         db.session.add(self)

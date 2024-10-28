@@ -54,6 +54,7 @@ def install():
         new_shop = ShopInfo(shop=shop, shop_token=shop_token, shopify_token=shopify_token)
         new_shop.save()
         print(new_shop)
+        return jsonify({'status': 'success', 'message': 'Shop installed successfully'}), 200
     except Exception as e:
         print("Error:", e)
         return "An error occurred", 500
