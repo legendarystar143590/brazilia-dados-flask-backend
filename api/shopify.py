@@ -46,10 +46,13 @@ def install():
         #     return redirect(f'https://{shop}/admin/oauth/authorize?client_id={SHOPIFY_API_KEY}&scope=read_products&redirect_uri={REDIRECT_URI}&state={state}')
         
         # return "Verification failed", 403
+        print("shopify install")
         shop = request.args.get('shop')
         shop_token = request.args.get('shopify_shop_token')
         shopify_token = request.args.get('shopify_token')
+        print("shop", shop, "shop_token", shop_token, "shopify_token", shopify_token)
         new_shop = ShopInfo(shop=shop, shop_token=shop_token, shopify_token=shopify_token)
+        new_shop.save()
         print(new_shop)
     except Exception as e:
         print("Error:", e)
