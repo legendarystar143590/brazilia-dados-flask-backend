@@ -134,11 +134,15 @@ def detect_language(text):
         return 'en'  # default to English if detection fails
 
 #  Generate the response
-def get_answer(bot_id, session_id, query, knowledge_base):
+def get_answer(bot_id, session_id, query, knowledge_base, website):
     try:
         bot = Bot.get_by_id(bot_id)
         query_language = detect_language(query)
         print(query_language)
+
+        # Get products from the database
+        print(website)
+        
         starter = f"""
         Q:
         Please follow these guidelines when responding:
@@ -181,7 +185,7 @@ def get_answer(bot_id, session_id, query, knowledge_base):
             # print(condition)
 
             docs = docsearch.similarity_search(query, k=3, filter=condition)
-            # print("Got here1  >>>", docs)
+            print("Got here1  >>>", docs)
 
         llm = ChatOpenAI(temperature=0.7, model="gpt-3.5-turbo-0125", openai_api_key=OPENAI_API_KEY, streaming=True)
         memory = ConversationBufferMemory(memory_key="chat_history", input_key="human_input")

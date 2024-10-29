@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import base64
 import os
+from datetime import datetime
 from models import ShopInfo, ProudctsTable, User, Bot, RegisteredWebsite
 
 load_dotenv()
@@ -26,31 +27,62 @@ def verify_webhook(data: bytes, hmac_header: str) -> bool:
     print("computed_hmac", computed_hmac)
     return hmac.compare_digest(computed_hmac, hmac_header)
 
-@shopify_blueprint.route('/shopifyinstall', methods=['GET'])
+@shopify_blueprint.route('/shopifyinstall', methods=['GET', 'POST'])
 def install():
     try:
-        shop = request.args.get('shop')
-        timestamp = request.args.get('timestamp')
-        hmac_header = request.args.get('hmac')
-        state = request.args.get('state')
-        print("shop", shop)
-        # Verify the webhook using the provided parameters
-        data = f'shop={shop}&timestamp={timestamp}&state={state}'.encode('utf-8')
-        if verify_webhook(data, hmac_header):
-            # Store the shop code and state securely (implement your own storage logic)
-            store_shop_data(shop, state)
-            print("Verification successful")
-            # Redirect to Shopify authorization URL
-            return redirect(f'https://{shop}/admin/oauth/authorize?client_id={SHOPIFY_API_KEY}&scope=read_products&redirect_uri={REDIRECT_URI}&state={state}')
+        # headers = dict(request.headers)
+        # body = request.get_data()
+        # print("header--->>>>>", headers, "body--->>>>>", body)
+        # shop = request.args.get('shop')
+        # timestamp = request.args.get('timestamp')
+        # hmac_header = request.args.get('hmac')
+        # state = request.args.get('state')
+        # # Verify the webhook using the provided parameters
+        # data = f'shop={shop}&timestamp={timestamp}&state={state}'.encode('utf-8')
+        # if verify_webhook(data, hmac_header):
+        #     # Store the shop code and state securely (implement your own storage logic)
+        #     store_shop_data(shop, state)
+        #     print("Verification successful")
+        #     # Redirect to Shopify authorization URL
+        #     return redirect(f'https://{shop}/admin/oauth/authorize?client_id={SHOPIFY_API_KEY}&scope=read_products&redirect_uri={REDIRECT_URI}&state={state}')
         
-        return "Verification failed", 403
+        # return "Verification failed", 403
+        print("shopify install")
+        shop = request.args.get('shop')
+        shop_token = request.args.get('shopify_shop_token')
+        shopify_token = request.args.get('shopify_token')
+        if not shop or not shop_token or not shopify_token:
+            return jsonify({'status': 'error', 'message': 'Invalid request'}), 400
+        print("shop", shop, "shop_token", shop_token, "shopify_token", shopify_token)
+        print(ShopInfo.check_shop_exist(shop))
+        if ShopInfo.check_shop_exist(shop):
+            print("shop already exist")
+            ShopInfo.update_shop_info(shop, shop_token, shopify_token)  
+            products = get_shopify_products(shop, shopify_token)
+            current_shop = ShopInfo.query.filter_by(shop = shop).first()            
+            for product in products:
+                insert_product_data(product, current_shop.id)              
+            return jsonify({'status': 'success', 'message': 'Shop already exist'}), 200
+
+        new_shop = ShopInfo(shop=shop, shop_token=shop_token, shopify_token=shopify_token)
+        print("shop not exist", new_shop)
+        new_shop.save()
+        products = get_shopify_products(shop, shopify_token)
+        current_shop = ShopInfo.query.filter_by(shop = shop).first()            
+        for product in products:
+            insert_product_data(product, current_shop.id)
+        return jsonify({'status': 'success', 'message': 'Shop installed successfully'}), 200
+        
     except Exception as e:
         print("Error:", e)
         return "An error occurred", 500
 
-@shopify_blueprint.route('/shopifyauth', methods=['GET'])
+@shopify_blueprint.route('/shopifyauth', methods=['GET', 'POST'])
 def auth_callback():
     try:
+        headers = dict(request.headers)
+        body = request.get_data()
+        print("header--->>>>>", headers, "body--->>>>>", body)
         code = request.args.get('code')
         shop = request.args.get('shop')
         state = request.args.get('state')
@@ -81,29 +113,68 @@ def auth_callback():
         print("Error:", e)
         return "Error occurred", 500
 
-# @shopify_blueprint.route('/active_chatbots', methods=['GET'])
-def get_active_chatbots(shop:str):
+@shopify_blueprint.route('/active_chatbots', methods=['GET', 'POST'])
+def get_active_chatbots(shop=None):
     try:
-        # shop = request.args.get('shop')
+        if not shop:
+            shop = request.args.get('shop')
+            print("shop", shop)
+            shop_token = request.args.get('shopify_shop_token')
+            print("shop_token", shop_token)
         shop_info = ShopInfo.get_by_shop(shop)
         
         if not shop_info:
             return jsonify({"error": "Please obtain a valid eCommerce license in Aiana to let your website visitors answer questions about your products."}), 403
+        
+        if shop_token != shop_info.shop_token and not shop_token:
+            return jsonify({"error": "Invalid shop token"}), 403
 
+        shop = f"https://{shop}"
+        print("shop", shop)
         registered_website = RegisteredWebsite.query.filter_by(domain=shop).first()
+        print("registered_website", registered_website.bot_id)
         if not registered_website:
             return jsonify({"error": "Website not registered"}), 404
-        bot = Bot.query.filter_by(index = registered_website.bot_id).first()
+        bot = Bot.query.filter_by(id = registered_website.bot_id).first()
+        user = User.query.filter_by(id = bot.user_id).first()
+        print("bot", bot)
+        if not bot:
+            return jsonify({"error": "Bot not found"}), 404
         response = []
         response.append({
             "name": bot.name,
-            "chatbotid": registered_website.bot_id,
-            "userid": registered_website.user_id,
+            "chatbotid": bot.index,
+            "userid": user.index,
+            "status": bot.active,
         })
 
         return jsonify(response), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@shopify_blueprint.route('/uninstall_app', methods=['GET', 'POST'])
+def shopify_webhook():
+    try:
+        if request.method == 'POST':
+            headers = dict(request.headers)
+            data = request.get_json()
+            shop = data['shop']
+            print("header--->>>>>", headers, "body--->>>>>", data)
+            print("shopify webhook")
+        elif request.method == 'GET':
+            shop = request.args.get('shop')
+        print("shop", shop)
+        ShopInfo.query.filter_by(shop=shop).delete()
+        # ShopInfo.del_by_shop(shop)
+        shop_url = f"https://{shop}"
+        if RegisteredWebsite.check_shopify_domain(shop_url):
+            RegisteredWebsite.query.filter_by(domain=shop_url).delete()
+            print("RegisteredWebsite deleted")
+            # current_website = RegisteredWebsite.query.filter_by(domain=shop_url).first()
+            # RegisteredWebsite.del_by_index(current_website.index)
+        return jsonify({'status': 'success', 'message': 'Uninstall successfully'}), 200
+    except Exception as e:
+        return jsonify({'status':'failed',"error": str(e)}), 500
 
 def store_shop_data(shop: str, state: str):
     """
@@ -165,19 +236,45 @@ def get_access_token(shop: str, code: str) -> str:
     else:
         return None
 
-def get_shopify_products(shop: str, access_token: str) -> list:
+def get_current_api_version() -> str:
+    """
+    Determine the current Shopify API version based on the release schedule.
+    
+    :return: The latest stable API version in 'YYYY-MM' format.
+    """
+    now = datetime.utcnow()
+    year = now.year
+    
+    # Determine the current quarter and set the version accordingly
+    if now.month >= 10:  # October, November, December
+        return f"{year}-10"
+    elif now.month >= 7:  # July, August, September
+        return f"{year}-07"
+    elif now.month >= 4:  # April, May, June
+        return f"{year}-04"
+    else:  # January, February, March
+        return f"{year}-01"
+
+# Example usage
+api_version = get_current_api_version()
+print(f"Current Shopify API Version: {api_version}")
+
+def get_shopify_products(shop: str, shopify_token: str) -> list:
     """
     Retrieve products from Shopify using the provided access token.
     """
     # Implement your logic to retrieve products using the provided access token
     # This is a placeholder and should be replaced with actual API calls
     try:
-        new_url = f'https://{shop}/admin/api/2023-04/products.json'
+        api_version = get_current_api_version()
+        print(api_version)
+        new_url = f'https://{shop}/admin/api/{api_version}/products.json'
         headers = {
             'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': access_token
+            'X-Shopify-Access-Token': shopify_token
         }
         response = requests.get(new_url, headers=headers)
+        print(response.json()['products'])
         if response.status_code == 200:
             return response.json()['products']
         else:
@@ -193,11 +290,12 @@ def insert_product_data(product: dict, shop_id: int):
     # Implement your logic to insert product data into the database
     # This is a placeholder and should be replaced with actual database operations
     try:
-        new_product = ProudctsTable(shop_id=shop_id, product_id=product['id'], product_type=product['type'], product_title=product['title'], product_price=product['price'])
-        print(new_product)
+        new_product = ProudctsTable(shop_id=shop_id, product_id=product['id'], product_type=product['product_type'], product_title=product['title'], product_price=product['variants'][0]['price'], created_at=product['created_at'])
+        new_product.save()
+        # print(new_product)
         return jsonify({'status':'success'}), 200
     except Exception as e:
-        print(e)
+        print("error", e)
         return jsonify({'status':'failed'}), 400
 
 def sync_products():
@@ -206,16 +304,18 @@ def sync_products():
     """
     # Implement your logic to synchronize products from Shopify to the database
     # This is a placeholder and should be replaced with actual API calls
+    print("sync_products()")
     try:
         with current_app.app_context():
             ProudctsTable.clear_all_products()
             shops = ShopInfo.query.all()
             print("sync_products()", shops)
             for shop in shops:
-                access_token = shop.access_token
-                if access_token == '':
+                shopify_token = shop.shopify_token
+                if shopify_token == '':
                     continue
-                products = get_shopify_products(shop.shop, access_token)
+                products = get_shopify_products(shop.shop, shopify_token)
+                print("get_shopify_products", products)
                 for product in products:
                     insert_product_data(product, shop.id)
         return jsonify({'message': 'Products synchronized successfully'}), 200
