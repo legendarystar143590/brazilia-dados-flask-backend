@@ -763,6 +763,18 @@ class RegisteredWebsite(db.Model):
             raise e
 
     @staticmethod
+    def check_shopify_domain(domain):
+        try:
+            website = RegisteredWebsite.query.filter_by(domain=domain).first()
+            if website:
+                return True
+            else:
+                return False
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    @staticmethod
     def del_by_index(index):
         try:
             website = RegisteredWebsite.query.filter_by(index=index).first()
@@ -787,7 +799,7 @@ class RegisteredWebsite(db.Model):
         return f"<RegisteredWebsite {self.id}>"
 
 class ShopInfo(db.Model):
-    __bind_key__ = 'shopify'
+    # __bind_key__ = 'shopify'
     __tablename__="shop_info"
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
@@ -804,14 +816,32 @@ class ShopInfo(db.Model):
         self.shop_token = shop_token
         self.shopify_token = shopify_token
 
+    def check_shop_exist(shop):
+        db_shop = ShopInfo.query.filter_by(shop=shop).first()
+        print("db-shop-->>",db_shop)
+        if db_shop is None:
+            return False
+        else:
+            return True
+
     def save(self):
         db.session.add(self)
+        db.session.commit()
+
+    def del_by_shop(shop):
+        db_shop = ShopInfo.query.filter_by(shop = shop).first()
+        db.session.delete(db_shop)
         db.session.commit()
 
     def update_shop_info(shop, shop_token, shopify_token):
         db_shop = ShopInfo.query.filter_by(shop = shop).first()
         db_shop.shop_token = shop_token
         db_shop.shopify_token = shopify_token
+        db.session.commit()
+
+    def remove_shop_token(shop):
+        db_shop = ShopInfo.query.filter_by(shop = shop).first()
+        db_shop.shop_token = None
         db.session.commit()
 
     @staticmethod
@@ -842,7 +872,7 @@ class ShopInfo(db.Model):
         return f"<ShopInfo {self.id}>"
     
 class ProudctsTable(db.Model):
-    __bind_key__ = 'shopify'
+    # __bind_key__ = 'shopify'
     __tablename__="shop_products"
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
@@ -854,12 +884,13 @@ class ProudctsTable(db.Model):
     created_at = db.Column(db.String(255), nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.String(255), nullable=True)
     
-    def __init__(self, shop_id, product_id, product_type, product_title, product_price,):
+    def __init__(self, shop_id, product_id, product_type, product_title, product_price,created_at):
         self.shop_id = shop_id
         self.product_id = product_id
         self.product_type = product_type
         self.product_title = product_title
         self.product_price = Decimal(product_price)
+        self.created_at = created_at
 
     def save(self):
         db.session.add(self)

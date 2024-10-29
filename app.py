@@ -27,9 +27,9 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DB_URI")
 # app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SHOPIFY_DB_URI")
-app.config['SQLALCHEMY_BINDS'] = {
-   'shopify': os.getenv('SHOPIFY_DB_URI')
-}
+# app.config['SQLALCHEMY_BINDS'] = {
+#    'shopify': os.getenv('SHOPIFY_DB_URI')
+# }
 # from sqlalchemy import create_engine
 
 # engine = create_engine(os.getenv('DB_URI'), connect_args={'ssl': {'sslmode': 'REQUIRED'}})
@@ -82,7 +82,7 @@ get_bucket_name()
 @app.route("/")
 def index():
    db.create_all()
-   db.create_all(bind_key='shopify')
+   # db.create_all(bind_key='shopify')
    # db.drop_all()
    # del_all_records()
    # for i in range(7714, 9616):
