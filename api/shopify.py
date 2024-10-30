@@ -6,8 +6,10 @@ import hmac
 import hashlib
 import base64
 import os
+import json
 from datetime import datetime
 from models import ShopInfo, ProudctsTable, User, Bot, RegisteredWebsite
+from utils.provider import tiktoken_products_split, generate_kb_from_products
 
 load_dotenv()
 
@@ -57,22 +59,22 @@ def install():
         print(ShopInfo.check_shop_exist(shop))
         if ShopInfo.check_shop_exist(shop):
             print("shop already exist")
-            ShopInfo.update_shop_info(shop, shop_token, shopify_token)  
+            ShopInfo.update_shop_info(shop, shop_token, shopify_token)
+            db_shop = ShopInfo.get_by_shop(shop) 
             products = get_shopify_products(shop, shopify_token)
-            current_shop = ShopInfo.query.filter_by(shop = shop).first()            
-            for product in products:
-                insert_product_data(product, current_shop.id)              
-            return jsonify({'status': 'success', 'message': 'Shop already exist'}), 200
+            if update_knowledgebase_unique_id(db_shop.id, shop, products):          
+                return jsonify({'status': 'success', 'message': 'Shop already exist'}), 200
+            else:
+                return jsonify({'status': 'error', 'message': 'Knowledgebase update failed'}), 200
 
         new_shop = ShopInfo(shop=shop, shop_token=shop_token, shopify_token=shopify_token)
         print("shop not exist", new_shop)
         new_shop.save()
         products = get_shopify_products(shop, shopify_token)
-        current_shop = ShopInfo.query.filter_by(shop = shop).first()            
-        for product in products:
-            insert_product_data(product, current_shop.id)
-        return jsonify({'status': 'success', 'message': 'Shop installed successfully'}), 200
-        
+        if update_knowledgebase_unique_id(new_shop.id, shop, products):
+            return jsonify({'status': 'success', 'message': 'Shop created successfully'}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Knowledgebase update failed'}), 200        
     except Exception as e:
         print("Error:", e)
         return "An error occurred", 500
@@ -274,7 +276,7 @@ def get_shopify_products(shop: str, shopify_token: str) -> list:
             'X-Shopify-Access-Token': shopify_token
         }
         response = requests.get(new_url, headers=headers)
-        print(response.json()['products'])
+        # print(response.json()['products'])
         if response.status_code == 200:
             return response.json()['products']
         else:
@@ -298,6 +300,56 @@ def insert_product_data(product: dict, shop_id: int):
         print("error", e)
         return jsonify({'status':'failed'}), 400
 
+# def sync_products():
+#     """
+#     Synchronize products from Shopify to the database.
+#     """
+#     # Implement your logic to synchronize products from Shopify to the database
+#     # This is a placeholder and should be replaced with actual API calls
+#     print("sync_products()")
+#     try:
+#         with current_app.app_context():
+#             ProudctsTable.clear_all_products()
+#             shops = ShopInfo.query.all()
+#             print("sync_products()", shops)
+#             for shop in shops:
+#                 shopify_token = shop.shopify_token
+#                 if shopify_token == '':
+#                     continue
+#                 products = get_shopify_products(shop.shop, shopify_token)
+#                 print("get_shopify_products", products)
+#                 for product in products:
+#                     insert_product_data(product, shop.id)
+#         return jsonify({'message': 'Products synchronized successfully'}), 200
+#     except Exception as e:
+#         print(e)
+#         return jsonify({'error': 'Failed to synchronize products'}), 500
+
+def get_knowledgebase_unique_id_by_shop(shop):
+    try:
+        shop_url = f"https://{shop}"
+        db_bot_id = RegisteredWebsite.query.filter_by(domain = shop_url).first().bot_id
+        knowledgebase_unique_id = Bot.query.filter_by(id = db_bot_id).first().knowledge_base
+        return knowledgebase_unique_id
+    except Exception as e:
+        print(e)
+        return None
+
+def update_knowledgebase_unique_id(shop_id, shop_shop, products):
+    try:
+        products_text = json.dumps(products, indent=2)
+        type_of_knowledge = "products"
+        chunks = tiktoken_products_split(products_text)
+        unique_id = get_knowledgebase_unique_id_by_shop(shop_shop)
+        print("unique_id", unique_id)
+        new_products = ProudctsTable(shop_id=shop_id, product_type=".txt", product_info=unique_id)
+        new_products.save()
+        generate_kb_from_products(chunks, unique_id, new_products.id, type_of_knowledge)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
 def sync_products():
     """
     Synchronize products from Shopify to the database.
@@ -316,8 +368,8 @@ def sync_products():
                     continue
                 products = get_shopify_products(shop.shop, shopify_token)
                 print("get_shopify_products", products)
-                for product in products:
-                    insert_product_data(product, shop.id)
+                if products:
+                    update_knowledgebase_unique_id(shop.id, shop.shop, products)
         return jsonify({'message': 'Products synchronized successfully'}), 200
     except Exception as e:
         print(e)

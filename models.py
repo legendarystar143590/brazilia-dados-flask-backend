@@ -877,20 +877,15 @@ class ProudctsTable(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
     shop_id = db.Column(db.String(255), nullable=False)
-    product_id = db.Column(db.String(255), nullable=False)
     product_type = db.Column(db.String(255), nullable=False)
-    product_title = db.Column(db.String(255), nullable=False)
-    product_price = db.Column(db.Numeric(10,2), nullable=False)
+    product_info = db.Column(db.String(255), nullable=True)    
     created_at = db.Column(db.String(255), nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.String(255), nullable=True)
     
-    def __init__(self, shop_id, product_id, product_type, product_title, product_price,created_at):
+    def __init__(self, shop_id, product_type, product_info):
         self.shop_id = shop_id
-        self.product_id = product_id
         self.product_type = product_type
-        self.product_title = product_title
-        self.product_price = Decimal(product_price)
-        self.created_at = created_at
+        self.product_info = product_info
 
     def save(self):
         db.session.add(self)
@@ -898,7 +893,7 @@ class ProudctsTable(db.Model):
 
     @staticmethod
     def get_by_shop_id(shop_id):
-        return ProudctsTable.query.filter_by(shop_id=shop_id).all()
+        return ProudctsTable.query.filter_by(shop_id=shop_id).first()
     
     @staticmethod
     def clear_all_products():
@@ -909,13 +904,59 @@ class ProudctsTable(db.Model):
         return{
             'id' :self.id,
             'shop_id':self.shop_id,
-            'product_id':self.product_id,
             'product_type':self.product_type,
-            'product_title':self.product_title,
-            'product_price':self.product_price,
             'created_at':self.created_at,
             'updated_at':self.updated_at
         }
 
     def __repr__(self):
         return f"<ProudctsTable {self.id}>"
+
+# class ProudctsTable(db.Model):
+#     # __bind_key__ = 'shopify'
+#     __tablename__="shop_products"
+
+#     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
+#     shop_id = db.Column(db.String(255), nullable=False)
+#     product_id = db.Column(db.String(255), nullable=False)
+#     product_type = db.Column(db.String(255), nullable=False)
+#     product_title = db.Column(db.String(255), nullable=False)
+#     product_price = db.Column(db.Numeric(10,2), nullable=False)
+#     created_at = db.Column(db.String(255), nullable=False, default=datetime.utcnow)
+#     updated_at = db.Column(db.String(255), nullable=True)
+    
+#     def __init__(self, shop_id, product_id, product_type, product_title, product_price,created_at):
+#         self.shop_id = shop_id
+#         self.product_id = product_id
+#         self.product_type = product_type
+#         self.product_title = product_title
+#         self.product_price = Decimal(product_price)
+#         self.created_at = created_at
+
+#     def save(self):
+#         db.session.add(self)
+#         db.session.commit()
+
+#     @staticmethod
+#     def get_by_shop_id(shop_id):
+#         return ProudctsTable.query.filter_by(shop_id=shop_id).all()
+    
+#     @staticmethod
+#     def clear_all_products():
+#         db.session.query(ProudctsTable).delete()
+#         db.session.commit()
+
+#     def json(self):
+#         return{
+#             'id' :self.id,
+#             'shop_id':self.shop_id,
+#             'product_id':self.product_id,
+#             'product_type':self.product_type,
+#             'product_title':self.product_title,
+#             'product_price':self.product_price,
+#             'created_at':self.created_at,
+#             'updated_at':self.updated_at
+#         }
+
+#     def __repr__(self):
+#         return f"<ProudctsTable {self.id}>"
