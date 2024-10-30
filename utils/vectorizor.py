@@ -101,6 +101,30 @@ def upsertTextToIndex(index_name, collection_name, doc_index, chunks, _type):
         print("Error in upsertDataToIndex()", str(e))
         pass
 
+def upsertProductsToIndex(index_name, collection_name, doc_index, chunks, _type):
+    try:
+        print("Upserting products to index")
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY, model=EMBEDDING_MODEL)
+        vectors = []
+        count = 0
+        for chunk in chunks:
+            count = count + 1
+            metadata = {"collection_name": collection_name, "doc_index": doc_index, "type":_type, "text": chunk}
+            
+            s_vector = {}
+            s_vector['id'] = str(doc_index+count)
+            print(s_vector['id'])
+            s_vector['values'] = embeddings.embed_query(chunk)
+            s_vector['metadata'] = metadata
+
+            vectors.append(s_vector)
+
+        p_index = pc.Index(index_name)
+        p_index.upsert(vectors=vectors)
+    except Exception as e:
+        print("Error in upsertDataToIndex()", str(e))
+        pass
+
 # Delete doc in the vector database
 def delDocument(collection_name, doc_index, _type):
     index = pc.Index("knowledge-base")
@@ -182,7 +206,7 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
         docs = []
         if knowledge_base !="-1":        
             condition = {"collection_name": knowledge_base}
-            # print(condition)
+            print(condition)
 
             docs = docsearch.similarity_search(query, k=3, filter=condition)
             print("Got here1  >>>", docs)
