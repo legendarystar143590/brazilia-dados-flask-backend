@@ -808,6 +808,7 @@ class ShopInfo(db.Model):
     code = db.Column(db.String(255), nullable=True)
     shop_token = db.Column(db.String(255), nullable=True)
     shopify_token = db.Column(db.String(255), nullable=True)
+    connected_bot = db.Column(db.String(255), nullable=True)
     time_stamp = db.Column(db.String(255), nullable=True)
     hmac_header = db.Column(db.String(255), nullable=True)
 
@@ -839,6 +840,11 @@ class ShopInfo(db.Model):
         db_shop.shopify_token = shopify_token
         db.session.commit()
 
+    def update_connected_bot(shop, connected_bot):
+        db_shop = ShopInfo.query.filter_by(shop = shop).first()
+        db_shop.connected_bot = connected_bot
+        db.session.commit()
+
     def remove_shop_token(shop):
         db_shop = ShopInfo.query.filter_by(shop = shop).first()
         db_shop.shop_token = None
@@ -864,6 +870,7 @@ class ShopInfo(db.Model):
             'code':self.code,
             'shop_token':self.shop_token,
             'shopify_token':self.shopify_token,
+            'connected_bot':self.connected_bot,
             'time_stamp':self.time_stamp,
             'hmac_header':self.hmac_header
         }

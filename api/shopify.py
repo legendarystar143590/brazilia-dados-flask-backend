@@ -141,9 +141,12 @@ def get_active_chatbots(shop=None):
             "userid": user.index,
             "status": bot.active,
         })
-
+        db_products = ProudctsTable.query.filter_by(shop_id = db_shop.id).first()
+        if db_products:
+            return jsonify({"error": "Bot already installed"}), 403
         products = get_shopify_products(shop, db_shop.shopify_token)
-        if update_knowledgebase_unique_id(db_shop.id, shop, products):          
+        if update_knowledgebase_unique_id(db_shop.id, shop, products):
+            ShopInfo.update_connected_bot(shop, bot.index)          
             return jsonify(response), 200
         else:
             return jsonify({"error": "Failed to update knowledgebase"}), 500
