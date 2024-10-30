@@ -878,14 +878,14 @@ class ProudctsTable(db.Model):
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
     shop_id = db.Column(db.String(255), nullable=False)
     product_type = db.Column(db.String(255), nullable=False)
-    product_info = db.Column(db.String(255), nullable=True)    
+    product_unique_id = db.Column(db.String(255), nullable=True)    
     created_at = db.Column(db.String(255), nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.String(255), nullable=True)
     
-    def __init__(self, shop_id, product_type, product_info):
+    def __init__(self, shop_id, product_type, product_unique_id):
         self.shop_id = shop_id
         self.product_type = product_type
-        self.product_info = product_info
+        self.product_unique_id = product_unique_id
 
     def save(self):
         db.session.add(self)

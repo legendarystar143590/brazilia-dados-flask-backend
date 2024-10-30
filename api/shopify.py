@@ -10,6 +10,7 @@ import json
 from datetime import datetime
 from models import ShopInfo, ProudctsTable, User, Bot, RegisteredWebsite
 from utils.provider import tiktoken_products_split, generate_kb_from_products
+from utils.vectorizor import delDocument
 
 load_dotenv()
 
@@ -60,21 +61,12 @@ def install():
         if ShopInfo.check_shop_exist(shop):
             print("shop already exist")
             ShopInfo.update_shop_info(shop, shop_token, shopify_token)
-            db_shop = ShopInfo.get_by_shop(shop) 
-            products = get_shopify_products(shop, shopify_token)
-            if update_knowledgebase_unique_id(db_shop.id, shop, products):          
-                return jsonify({'status': 'success', 'message': 'Shop already exist'}), 200
-            else:
-                return jsonify({'status': 'error', 'message': 'Knowledgebase update failed'}), 200
+            return jsonify({'status': 'success', 'message': 'Shop updated successfully'}), 200
 
         new_shop = ShopInfo(shop=shop, shop_token=shop_token, shopify_token=shopify_token)
         print("shop not exist", new_shop)
         new_shop.save()
-        products = get_shopify_products(shop, shopify_token)
-        if update_knowledgebase_unique_id(new_shop.id, shop, products):
-            return jsonify({'status': 'success', 'message': 'Shop created successfully'}), 200
-        else:
-            return jsonify({'status': 'error', 'message': 'Knowledgebase update failed'}), 200        
+        return jsonify({'status': 'success', 'message': 'Shop created successfully'}), 200
     except Exception as e:
         print("Error:", e)
         return "An error occurred", 500
@@ -123,17 +115,17 @@ def get_active_chatbots(shop=None):
             print("shop", shop)
             shop_token = request.args.get('shopify_shop_token')
             print("shop_token", shop_token)
-        shop_info = ShopInfo.get_by_shop(shop)
+        db_shop = ShopInfo.get_by_shop(shop)
         
-        if not shop_info:
+        if not db_shop:
             return jsonify({"error": "Please obtain a valid eCommerce license in Aiana to let your website visitors answer questions about your products."}), 403
         
-        if shop_token != shop_info.shop_token and not shop_token:
+        if shop_token != db_shop.shop_token or shop_token is None:
             return jsonify({"error": "Invalid shop token"}), 403
 
-        shop = f"https://{shop}"
-        print("shop", shop)
-        registered_website = RegisteredWebsite.query.filter_by(domain=shop).first()
+        shop_url = f"https://{shop}"
+        print("shop_url", shop_url)
+        registered_website = RegisteredWebsite.query.filter_by(domain=shop_url).first()
         print("registered_website", registered_website.bot_id)
         if not registered_website:
             return jsonify({"error": "Website not registered"}), 404
@@ -150,7 +142,12 @@ def get_active_chatbots(shop=None):
             "status": bot.active,
         })
 
-        return jsonify(response), 200
+        products = get_shopify_products(shop, db_shop.shopify_token)
+        if update_knowledgebase_unique_id(db_shop.id, shop, products):          
+            return jsonify(response), 200
+        else:
+            return jsonify({"error": "Failed to update knowledgebase"}), 500
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -166,15 +163,21 @@ def shopify_webhook():
         elif request.method == 'GET':
             shop = request.args.get('shop')
         print("shop", shop)
-        ShopInfo.query.filter_by(shop=shop).delete()
-        # ShopInfo.del_by_shop(shop)
-        shop_url = f"https://{shop}"
-        if RegisteredWebsite.check_shopify_domain(shop_url):
-            RegisteredWebsite.query.filter_by(domain=shop_url).delete()
-            print("RegisteredWebsite deleted")
-            # current_website = RegisteredWebsite.query.filter_by(domain=shop_url).first()
-            # RegisteredWebsite.del_by_index(current_website.index)
-        return jsonify({'status': 'success', 'message': 'Uninstall successfully'}), 200
+        db_shop = ShopInfo.get_by_shop(shop)
+        db_products = ProudctsTable.query.filter_by(shop_id=db_shop.id).first()
+        if delDocument(db_products.product_unique_id, db_products.id, "products"):
+            ProudctsTable.query.filter_by(shop_id=db_shop.id).delete()
+            ShopInfo.query.filter_by(shop=shop).delete()
+            # ShopInfo.del_by_shop(shop)
+            shop_url = f"https://{shop}"
+            if RegisteredWebsite.check_shopify_domain(shop_url):
+                RegisteredWebsite.query.filter_by(domain=shop_url).delete()
+                print("RegisteredWebsite deleted")
+                # current_website = RegisteredWebsite.query.filter_by(domain=shop_url).first()
+                # RegisteredWebsite.del_by_index(current_website.index)
+            return jsonify({'status': 'success', 'message': 'Uninstall successfully'}), 200
+        else:
+            return jsonify({'status': 'failed', 'message': 'Failed remove knowledgebase'}), 400
     except Exception as e:
         return jsonify({'status':'failed',"error": str(e)}), 500
 
@@ -339,12 +342,12 @@ def update_knowledgebase_unique_id(shop_id, shop_shop, products):
     try:
         products_text = json.dumps(products, indent=2)
         type_of_knowledge = "products"
-        chunks = tiktoken_products_split(products_text)
-        unique_id = get_knowledgebase_unique_id_by_shop(shop_shop)
-        print("unique_id", unique_id)
-        new_products = ProudctsTable(shop_id=shop_id, product_type=".txt", product_info=unique_id)
+        knowledgebase_unique_id = get_knowledgebase_unique_id_by_shop(shop_shop)
+        print("knowledgebase_unique_id", knowledgebase_unique_id)
+        new_products = ProudctsTable(shop_id=shop_id, product_type="txt", product_unique_id=knowledgebase_unique_id)
         new_products.save()
-        generate_kb_from_products(chunks, unique_id, new_products.id, type_of_knowledge)
+        chunks = tiktoken_products_split(products_text)
+        generate_kb_from_products(chunks, knowledgebase_unique_id, new_products.id, type_of_knowledge)
         return True
     except Exception as e:
         print(e)
@@ -356,10 +359,9 @@ def sync_products():
     """
     # Implement your logic to synchronize products from Shopify to the database
     # This is a placeholder and should be replaced with actual API calls
-    print("sync_products()")
     try:
         with current_app.app_context():
-            ProudctsTable.clear_all_products()
+            # ProudctsTable.clear_all_products()
             shops = ShopInfo.query.all()
             print("sync_products()", shops)
             for shop in shops:
@@ -367,9 +369,15 @@ def sync_products():
                 if shopify_token == '':
                     continue
                 products = get_shopify_products(shop.shop, shopify_token)
-                print("get_shopify_products", products)
+                # print("get_shopify_products", products)
                 if products:
-                    update_knowledgebase_unique_id(shop.id, shop.shop, products)
+                    db_products = ProudctsTable.query.filter_by(shop_id=shop.id).first()
+                    if db_products is None:
+                        update_knowledgebase_unique_id(shop.id, shop.shop, products)
+                    else:
+                        if delDocument(db_products.product_unique_id, db_products.id, "products"):
+                            ProudctsTable.query.filter_by(id=db_products.id).delete()
+                            update_knowledgebase_unique_id(shop.id, shop.shop, products)
         return jsonify({'message': 'Products synchronized successfully'}), 200
     except Exception as e:
         print(e)

@@ -341,6 +341,9 @@ def add_website():
         domain = data['domain']
         # Check limitations
 
+        if domain != None and domain == RegisteredWebsite.query.filter_by(domain=domain).first():
+            return jsonify({'message':'You can not use same domain'}), 403
+
         current_websites = RegisteredWebsite.get_by_user_id(user_id)
         billing_plan = User.get_by_userID(user_id).billing_plan
         plan = BillingPlan.query.filter_by(code=billing_plan).first()
