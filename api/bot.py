@@ -167,6 +167,7 @@ def del_bot():
         if not bot_id:
             return jsonify({'error': 'bot_id is required'}), 400
 
+        # db_registered_website = RegisteredWebsite.query.filter_by(bot_id=bot_id).first()
         Bot.del_by_id(bot_id)
         return jsonify({'message':'success'}), 201
 
@@ -340,9 +341,9 @@ def add_website():
         bot_id = data['botId']
         domain = data['domain']
         # Check limitations
-
-        if domain != None and domain == RegisteredWebsite.query.filter_by(domain=domain).first():
-            return jsonify({'message':'You can not use same domain'}), 403
+        existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
+        if existing_website:
+            return jsonify({'message':'You can not use same url'}), 402
 
         current_websites = RegisteredWebsite.get_by_user_id(user_id)
         billing_plan = User.get_by_userID(user_id).billing_plan
