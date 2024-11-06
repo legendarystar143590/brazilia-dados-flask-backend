@@ -141,9 +141,12 @@ def get_active_chatbots(shop=None):
             "userid": user.index,
             "status": bot.active,
         })
-
+        db_products = ProudctsTable.query.filter_by(shop_id = db_shop.id).first()
+        if db_products:
+            return jsonify({"error": "Bot already installed"}), 403
         products = get_shopify_products(shop, db_shop.shopify_token)
-        if update_knowledgebase_unique_id(db_shop.id, shop, products):          
+        if update_knowledgebase_by_unique_id(db_shop.id, shop, products):
+            ShopInfo.update_connected_bot(shop, bot.index)          
             return jsonify(response), 200
         else:
             return jsonify({"error": "Failed to update knowledgebase"}), 500
@@ -331,14 +334,22 @@ def insert_product_data(product: dict, shop_id: int):
 def get_knowledgebase_unique_id_by_shop(shop):
     try:
         shop_url = f"https://{shop}"
-        db_bot_id = RegisteredWebsite.query.filter_by(domain = shop_url).first().bot_id
-        knowledgebase_unique_id = Bot.query.filter_by(id = db_bot_id).first().knowledge_base
-        return knowledgebase_unique_id
+        registered_website = RegisteredWebsite.query.filter_by(domain = shop_url).first().bot_id
+
+        if registered_website is None:
+            return None
+        
+        bot = Bot.query.filter_by(id = registered_website.bot_id).first()
+        
+        if bot is None:
+            return None
+        
+        return bot.knowledgebase_unique_id
     except Exception as e:
-        print(e)
+        print(f"Error getting knowledge base ID: {str(e)}")
         return None
 
-def update_knowledgebase_unique_id(shop_id, shop_shop, products):
+def update_knowledgebase_by_unique_id(shop_id, shop_shop, products):
     try:
         products_text = json.dumps(products, indent=2)
         type_of_knowledge = "products"
@@ -366,19 +377,21 @@ def sync_products():
             print("sync_products()", shops)
             for shop in shops:
                 shopify_token = shop.shopify_token
-                if shopify_token == '':
+                if not shopify_token:
                     continue
+
                 products = get_shopify_products(shop.shop, shopify_token)
                 # print("get_shopify_products", products)
                 if products:
                     db_products = ProudctsTable.query.filter_by(shop_id=shop.id).first()
                     if db_products is None:
-                        update_knowledgebase_unique_id(shop.id, shop.shop, products)
+                        update_knowledgebase_by_unique_id(shop.id, shop.shop, products)
                     else:
                         if delDocument(db_products.product_unique_id, db_products.id, "products"):
                             ProudctsTable.query.filter_by(id=db_products.id).delete()
-                            update_knowledgebase_unique_id(shop.id, shop.shop, products)
+                            update_knowledgebase_by_unique_id(shop.id, shop.shop, products)
+        print("sync_products()", "Products synchronized successfully")
         return jsonify({'message': 'Products synchronized successfully'}), 200
     except Exception as e:
-        print(e)
+        print(f"Sync error: {str(e)}")
         return jsonify({'error': 'Failed to synchronize products'}), 500

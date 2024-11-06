@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from models import Bot, KnowledgeBase, Conversation, ChatLog, Order, Bot
+from models import Bot, KnowledgeBase, Conversation, ChatLog, Order, User
 from utils.common import get_url_from_name
 from flask_jwt_extended import jwt_required
 from utils.provider import generate
@@ -63,7 +63,8 @@ def get_log_data():
             #     imageUrl = get_url_from_name(bot.avatar)
             convLists.append(log_json)
         # print(convLists)
-        return jsonify({'log':chatLog.json(), 'conversation':convLists, 'bot_avatar':imageUrl}), 200
+        user = User.get_by_userID(chatLog.user_id)
+        return jsonify({'log':chatLog.json(), 'conversation':convLists, 'bot_avatar':imageUrl, 'user_name':user.first_name + " " + user.last_name, 'user_email':user.email}), 200
     
     except Exception as e:
         print(str(e))

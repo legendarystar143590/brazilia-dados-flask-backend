@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
-from models import Bot, KnowledgeBase, Conversation, ChatLog, BillingPlan, User, RegisteredWebsite
+from models import Bot, KnowledgeBase, Conversation, ChatLog, BillingPlan, User, RegisteredWebsite, ShopInfo
 from flask_jwt_extended import jwt_required
 from sqlalchemy.exc import IntegrityError
 from utils.provider import generate
@@ -167,6 +167,9 @@ def del_bot():
         if not bot_id:
             return jsonify({'error': 'bot_id is required'}), 400
 
+        db_bot = Bot.query.filter_by(bot_id=bot_id).first()
+        if ShopInfo.query.filter_by(connected_bot=db_bot.index).first():
+            return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400
         Bot.del_by_id(bot_id)
         return jsonify({'message':'success'}), 201
 
@@ -340,9 +343,9 @@ def add_website():
         bot_id = data['botId']
         domain = data['domain']
         # Check limitations
-
-        if domain != None and domain == RegisteredWebsite.query.filter_by(domain=domain).first():
-            return jsonify({'message':'You can not use same domain'}), 403
+        existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
+        if existing_website:
+            return jsonify({'message':'You can not use same url'}), 402
 
         current_websites = RegisteredWebsite.get_by_user_id(user_id)
         billing_plan = User.get_by_userID(user_id).billing_plan
