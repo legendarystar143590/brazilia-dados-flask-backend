@@ -167,7 +167,8 @@ def del_bot():
         if not bot_id:
             return jsonify({'error': 'bot_id is required'}), 400
 
-        db_bot = Bot.query.filter_by(bot_id=bot_id).first()
+        db_bot = Bot.query.filter_by(id=bot_id).first()
+        print(db_bot)
         if ShopInfo.query.filter_by(connected_bot=db_bot.index).first():
             return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400
         Bot.del_by_id(bot_id)
