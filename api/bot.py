@@ -100,6 +100,7 @@ def get_chatbots():
         bot_list = []
         for bot in bots:
             knowledgebase = KnowledgeBase.query.filter_by(unique_id=bot.knowledge_base).first()
+            registered_website = RegisteredWebsite.query.filter_by(bot_id=bot.id).first()
             bot_data = bot.json()  # Assuming that this method converts the bot instance to a dict
             if bot.avatar:  # Check if the bot has an avatar
                 avatarUrl = get_url_from_name(bot.avatar)
@@ -107,6 +108,10 @@ def get_chatbots():
             else:
                 bot_data['avatar'] = ""  # No avatar case
             bot_data['knowledgebase_name'] = knowledgebase.name
+            if registered_website:
+                bot_data['registered_website'] = registered_website.domain
+            else:
+                bot_data['registered_website'] = ""
             bot_list.append(bot_data)
 
         return jsonify(bot_list), 200
