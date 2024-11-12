@@ -205,11 +205,28 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
         
         docs = []
         if knowledge_base !="-1":        
-            condition = {"collection_name": knowledge_base}
-            print(condition)
+            if website:
+                condition = {
+                    "$or": [
+                        {"collection_name": knowledge_base, "type": "document"},
+                        {"collection_name": website, "type": "products"}
+                    ]
+                }
+                docs = docsearch.similarity_search(query, k=8, filter=condition)                
+            else:
+                condition = {"collection_name": knowledge_base}
+                docs = docsearch.similarity_search(query, k=8, filter=condition)
+            # condition = {"collection_name": knowledge_base}
+            # condition = {
+            #     "$or": [
+            #         {"collection_name": knowledge_base},
+            #         {"collection_name": website}
+            #     ]
+            # }
+            # print(condition)
 
-            docs = docsearch.similarity_search(query, k=3, filter=condition)
-            print("Got here1  >>>", docs)
+            # docs = docsearch.similarity_search(query, k=3, filter=condition)
+            # print("Got here1  >>>", docs)
 
         llm = ChatOpenAI(temperature=0.7, model="gpt-3.5-turbo-0125", openai_api_key=OPENAI_API_KEY, streaming=True)
         memory = ConversationBufferMemory(memory_key="chat_history", input_key="human_input")

@@ -127,6 +127,8 @@ def get_chatbot_data():
         user_id = request.args.get('userId')
         if not bot_id:
             return jsonify({'error': 'bot_id is required'}), 400
+        registered_website = {}
+        registered_website = RegisteredWebsite.query.filter_by(bot_id=bot_id).first()
         bot_data = {}
         if bot_id != '-1' and bot_id!='undefined':
             bot = Bot.get_by_id(bot_id)
@@ -149,10 +151,15 @@ def get_chatbot_data():
             bot_data = '-1'
         if not user_id:
             return jsonify({'error': 'user_id is required'}), 400
+        if registered_website:
+            registered_website = registered_website.json()
+        else:
+            registered_website = ""
 
         bases = KnowledgeBase.query.filter_by(user_id=user_id).all()
+        
         knowledge_bases_list = [base.json() for base in bases]
-        return jsonify({'bot_data':bot_data, 'knowledge':knowledge_bases_list}), 200
+        return jsonify({'bot_data':bot_data, 'knowledge':knowledge_bases_list, 'website':registered_website}), 200
 
     except ValueError:
         # If the provided user_id cannot be converted to an integer, return an error
@@ -173,6 +180,8 @@ def del_bot():
             return jsonify({'error': 'bot_id is required'}), 400
 
         db_bot = Bot.query.filter_by(id=bot_id).first()
+        if not db_bot:
+            return jsonify({'error': 'Bot not found'}), 404
         print(db_bot)
         if ShopInfo.query.filter_by(connected_bot=db_bot.index).first():
             return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400
@@ -232,6 +241,8 @@ def update_chatbot():
         start_time = data['start_time'] 
         end_time = data['end_time'] 
         knowledge_base = data['knowledge_base']
+        domain = data['website_domain']
+        website_unique_id = data['website_unique_id']
         unique_filename = ''
         print(bot.avatar)
         if avatar:
@@ -256,6 +267,20 @@ def update_chatbot():
         bot.knowledge_base = knowledge_base
         bot.save()
 
+        registered_website = RegisteredWebsite.query.filter_by(bot_id=botId).first()
+        if registered_website:
+            registered_website.domain = domain
+            registered_website.save()
+        else:
+            existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
+            if existing_website and existing_website.user_id == user_id:
+                existing_website.bot_id = botId
+                existing_website.save()
+            elif existing_website and existing_website.user_id != user_id:
+                return jsonify({"error": "Domain already registered by another user."}), 400
+            else:
+                new_website = RegisteredWebsite(index=website_unique_id, user_id=user_id, bot_id=botId, domain=domain)
+                new_website.save()
         return jsonify({'message': 'Success'}), 201
     except Exception as e:
         print("Error:", str(e))
@@ -278,7 +303,7 @@ def query():
             if 'https://login.aiana.io' == website:
                 return True
             for site in reg_websites:
-                if site == website:
+                if site.domain == website:
                     return True
             return False
         if check_domain() == False:
@@ -310,6 +335,8 @@ def query():
         if bot_id:
             bot = Bot.query.filter_by(id=bot_id).first()
         knowledge_base = bot.knowledge_base
+        if website != "https://login.aiana.io":
+            website = reg_websites[0].index
         result = generate(bot_id, session_id, query, knowledge_base, website)
         solve = True
         if "If so, leave me your email" in result or "votre adresse e-mail" in result or "correo electrónico" in result or "laissez-moi votre" in result or "laat me dan je e-mailadres achter" in result:
@@ -350,8 +377,6 @@ def add_website():
         domain = data['domain']
         # Check limitations
         existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
-        if existing_website:
-            return jsonify({'message':'You can not use same url'}), 402
 
         current_websites = RegisteredWebsite.get_by_user_id(user_id)
         billing_plan = User.get_by_userID(user_id).billing_plan
@@ -360,8 +385,13 @@ def add_website():
         if len(current_websites) >= max_linked_websites:
             return jsonify({'message':'Max websites number exceeds'}), 403
 
-        new_website = RegisteredWebsite(index=index, user_id=user_id, bot_id=bot_id, domain=domain)
-        new_website.save()
+        if existing_website:
+            existing_website.domain = domain
+            existing_website.bot_id = bot_id
+            existing_website.save()
+        else:
+            new_website = RegisteredWebsite(index=index, user_id=user_id, bot_id=bot_id, domain=domain)
+            new_website.save()
 
         return jsonify({'message':'success'}), 201
     except Exception as e:
