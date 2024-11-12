@@ -20,7 +20,7 @@ def generate_kb_from_products(chunks, unique_id, doc_index, _type):
     try:
         upsertProductsToIndex("knowledge-base", unique_id, doc_index, chunks, _type)
     except Exception as e:
-        print("Generating the knoledgebase >>>" ,str(e))
+        print("Generating the products knoledgebase >>>" ,str(e))
         return - 1
 
 def tiktoken_doc_split(text):

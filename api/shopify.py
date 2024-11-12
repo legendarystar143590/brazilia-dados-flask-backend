@@ -331,12 +331,12 @@ def insert_product_data(product: dict, shop_id: int):
 #         print(e)
 #         return jsonify({'error': 'Failed to synchronize products'}), 500
 
-def get_knowledgebase_unique_id_by_shop(shop):
+def get_products_knowledgebase_unique_id_by_shop(shop):
     try:
         shop_url = f"https://{shop}"
-        registered_website = RegisteredWebsite.query.filter_by(domain = shop_url).first().bot_id
+        registered_website = RegisteredWebsite.query.filter_by(domain = shop_url).first()
 
-        if registered_website is None:
+        if registered_website.bot_id is None:
             return None
         
         bot = Bot.query.filter_by(id = registered_website.bot_id).first()
@@ -344,7 +344,7 @@ def get_knowledgebase_unique_id_by_shop(shop):
         if bot is None:
             return None
         
-        return bot.knowledgebase_unique_id
+        return registered_website.index
     except Exception as e:
         print(f"Error getting knowledge base ID: {str(e)}")
         return None
@@ -353,12 +353,12 @@ def update_knowledgebase_by_unique_id(shop_id, shop_shop, products):
     try:
         products_text = json.dumps(products, indent=2)
         type_of_knowledge = "products"
-        knowledgebase_unique_id = get_knowledgebase_unique_id_by_shop(shop_shop)
-        print("knowledgebase_unique_id", knowledgebase_unique_id)
-        new_products = ProudctsTable(shop_id=shop_id, product_type="txt", product_unique_id=knowledgebase_unique_id)
+        registered_website_unique_id = get_products_knowledgebase_unique_id_by_shop(shop_shop)
+        print("registered_website_unique_id", registered_website_unique_id)
+        new_products = ProudctsTable(shop_id=shop_id, product_type="txt", product_unique_id=registered_website_unique_id)
         new_products.save()
         chunks = tiktoken_products_split(products_text)
-        generate_kb_from_products(chunks, knowledgebase_unique_id, new_products.id, type_of_knowledge)
+        generate_kb_from_products(chunks, registered_website_unique_id, new_products.id, type_of_knowledge)
         return True
     except Exception as e:
         print(e)
