@@ -85,7 +85,7 @@ def index():
    # db.create_all(bind_key='shopify')
    # db.drop_all()
    # del_all_records()
-   # for i in range(7714, 9616):
+   # for i in range(13216, 13217):
    #    delete_mautic_contact(i)
    #    print("current number", i)
    # print('Deleted')
