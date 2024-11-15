@@ -273,12 +273,15 @@ def update_chatbot():
             registered_website.save()
         else:
             existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
+            print(existing_website)
             if existing_website and existing_website.user_id == user_id:
+                print("visit this function")
                 existing_website.bot_id = botId
                 existing_website.save()
             elif existing_website and existing_website.user_id != user_id:
+                print("user_ID", user_id, existing_website.user_id)
                 return jsonify({"error": "Domain already registered by another user."}), 400
-            else:
+            elif domain and domain != 'undefined':
                 new_website = RegisteredWebsite(index=website_unique_id, user_id=user_id, bot_id=botId, domain=domain)
                 new_website.save()
         return jsonify({'message': 'Success'}), 201
