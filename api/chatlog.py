@@ -49,7 +49,9 @@ def get_log_data():
         data = request.get_json()
         session_id = data['session']
         chatLog = ChatLog.get_by_session(session_id)
+        print(chatLog)
         conversations = Conversation.get_by_session(session_id)
+        print(conversations)
         imageUrl = ''
 
         
@@ -63,6 +65,7 @@ def get_log_data():
             #     imageUrl = get_url_from_name(bot.avatar)
             convLists.append(log_json)
         # print(convLists)
+        print(chatLog.user_id)
         user = User.get_by_userID(chatLog.user_id)
         return jsonify({'log':chatLog.json(), 'conversation':convLists, 'bot_avatar':imageUrl, 'user_name':user.first_name + " " + user.last_name, 'user_email':user.email}), 200
     
