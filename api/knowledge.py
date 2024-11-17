@@ -13,6 +13,7 @@ import uuid
 import os
 from werkzeug.utils import secure_filename
 import json
+from datetime import datetime
 
 knowledge_blueprint = Blueprint('lknowledge_blueprintueprint', __name__)
 
@@ -77,7 +78,7 @@ def upload_document():
                 if (text == False):
                     bad_urls.append(url["url"])
                     continue
-                new_website = Website(url=url["url"], unique_id=new_unique_id)
+                new_website = Website(url=url["url"], unique_id=new_unique_id, created_at=url['created_at'])
                 new_website.save()
                 # save_from_url(new_website.id, url)
                 print(new_website.id)
@@ -275,15 +276,15 @@ def update_knowledge_base():
             knowledge_base_entry.save()
         bad_urls = []
         # Process URLs JSON if provided
-        print(urls_json)
+        print("urls_json", urls_json)
         if urls_json:
             urls = json.loads(urls_json)
             for url in urls:
                 # print(url['id'])
                 # if len(urls) > 0 and url['id'] != -1:
                 #     continue
-                
-                new_website = Website(url=url['url'], unique_id=unique_id)
+                print("Created_at: ", url['created_at'])
+                new_website = Website(url=url['url'], unique_id=unique_id, created_at=url['created_at'])
                 new_website.save()
                 # save_from_url(new_website.id, url)
                 print(new_website.id)
@@ -324,7 +325,7 @@ def update_knowledge_base():
                 data = loader.load()
 
                 chunks = tiktoken_doc_split(data)
-                new_doc = DocumentKnowledge(filename=filename, file_size=filesize, file_size_mb=filesize_byte/1024,  type=extension, unique_id=unique_id)
+                new_doc = DocumentKnowledge(filename=filename, file_size=filesize, file_size_mb=filesize_byte/1024,  type=extension, unique_id=unique_id, created_at=file['created_at'])
                 new_doc.save()
                 generate_kb_from_document(chunks, unique_id, new_doc.id, type_of_knowledge)
                 

@@ -252,12 +252,13 @@ class DocumentKnowledge(db.Model):
     unique_id = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def __init__(self, type, filename, file_size, file_size_mb, unique_id):
+    def __init__(self, type, filename, file_size, file_size_mb, unique_id, created_at):
         self.type = type
         self.filename = filename
         self.file_size = file_size
         self.file_size_mb = file_size_mb
         self.unique_id = unique_id
+        self.created_at = created_at
     
     def save(self):
         db.session.add(self)
@@ -298,9 +299,10 @@ class Website(db.Model):
     unique_id = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def __init__(self, url, unique_id):
+    def __init__(self, url, unique_id, created_at):
         self.url = url
         self.unique_id = unique_id
+        self.created_at = created_at
     
     def save(self):
         db.session.add(self)
