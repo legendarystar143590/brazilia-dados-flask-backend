@@ -218,6 +218,7 @@ def get_knowledgebase():
 def update_knowledge_base():
     try:
         unique_id = request.form.get('unique_id')
+        print("unique_id >>> ", unique_id)
         # Retrieve the existing knowledge base entry using the provided unique_id
         knowledge_base_entry = KnowledgeBase.query.filter_by(unique_id=unique_id).first()
         if not knowledge_base_entry:
@@ -229,7 +230,7 @@ def update_knowledge_base():
         qas_json = request.form.get('qa')
         urls_json = request.form.get('urls')
         user_id = request.form.get("userID")
-        # print("Requested Form data >>>>>",files)
+        print("Requested Form data >>>>>", request.form)
         if user_id is None:
             return jsonify({"error": "Unauthorized request!"}), 405
 
@@ -249,10 +250,9 @@ def update_knowledge_base():
         knowledge_bases = KnowledgeBase.query.filter_by(user_id=user.id).all()
         current_storage = 0
         for knowledge_base in knowledge_bases:
-            unique_id = knowledge_base.unique_id
-            docs = DocumentKnowledge.query.filter_by(unique_id=unique_id).all()
+            current_doc_unique_id = knowledge_base.unique_id
+            docs = DocumentKnowledge.query.filter_by(unique_id=current_doc_unique_id).all()
             for doc in docs:
-                print(doc.file_size_mb)
                 size = doc.file_size_mb if doc.file_size_mb else 0
                 print(size)
                 current_storage = current_storage + size
@@ -260,6 +260,7 @@ def update_knowledge_base():
         print("current_storage -->", current_storage)
         print("doc_storage -->", doc_storage)
         if max_storage < current_storage + doc_storage:
+            print("Exceeds Max Storage -->", max_storage, current_storage, doc_storage)
             for file in files:
                 file_path = 'uploads/' + file.filename
                 if os.path.exists(file_path):
