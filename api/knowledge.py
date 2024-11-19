@@ -24,6 +24,7 @@ def upload_document():
         name = request.form['name']
         files = request.files.getlist('files')
         qas_json = request.form['qa']
+        docs_json = request.form['docs']
         urls_json = request.form['urls']
         user_id = request.form["userID"]
         if name is None or user_id is None:
@@ -89,6 +90,8 @@ def upload_document():
 
                 generate_kb_from_url(chunks, new_unique_id, new_website.id, type_of_knowledge)
 
+        new_docs = json.loads(docs_json)
+        i = 0
         for file in files:
             file_path = 'uploads/' + file.filename
             filename = file.filename
@@ -115,7 +118,8 @@ def upload_document():
             data = loader.load()
 
             chunks = tiktoken_doc_split(data)
-            new_doc = DocumentKnowledge(filename=filename, type=extension, file_size=filesize, file_size_mb=filesize_byte/1024,unique_id=new_unique_id)
+            created_at = new_docs[i]['created_at']
+            new_doc = DocumentKnowledge(filename=filename, type=extension, file_size=filesize, file_size_mb=filesize_byte/1024,unique_id=new_unique_id, created_at=created_at)
             new_doc.save()
             generate_kb_from_document(chunks, new_unique_id, new_doc.id, type_of_knowledge)
             doc_storage = float(doc_storage) + filesize_byte/1024
@@ -126,6 +130,7 @@ def upload_document():
             else:
                 print(f"The file does not exist: {file_path}")
                 print("Doc ID >>> ", new_doc.id)
+            i += 1
 
         if qas_json:
             qas = json.loads(qas_json)
