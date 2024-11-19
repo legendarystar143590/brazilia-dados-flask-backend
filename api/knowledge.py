@@ -228,6 +228,7 @@ def update_knowledge_base():
         # Extract the relevant information from the form
         name = request.form.get('name')
         files = request.files.getlist('files')
+        docs_json = request.form.get('docs')
         qas_json = request.form.get('qa')
         urls_json = request.form.get('urls')
         user_id = request.form.get("userID")
@@ -298,6 +299,8 @@ def update_knowledge_base():
                       
         # Process uploaded files
         if len(files) > 0:
+            new_docs = json.loads(docs_json)
+            i = 0
             for file in files:
                 file_path = 'uploads/' + file.filename
                 filename = file.filename
@@ -325,7 +328,10 @@ def update_knowledge_base():
                 data = loader.load()
 
                 chunks = tiktoken_doc_split(data)
-                new_doc = DocumentKnowledge(filename=filename, file_size=filesize, file_size_mb=filesize_byte/1024,  type=extension, unique_id=unique_id, created_at=file['created_at'])
+                created_at = new_docs[i]['created_at']
+                print("created_at timestamp:", created_at)
+                new_doc = DocumentKnowledge(filename=filename, file_size=filesize, file_size_mb=filesize_byte/1024,  type=extension, unique_id=unique_id, created_at=created_at)
+                i += 1
                 new_doc.save()
                 generate_kb_from_document(chunks, unique_id, new_doc.id, type_of_knowledge)
                 
