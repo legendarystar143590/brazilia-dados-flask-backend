@@ -16,6 +16,7 @@ from api.tickets import ticket_blueprint
 from api.payment import payment_blueprint
 from api.shopify import shopify_blueprint, sync_products
 from api.mautic import delete_mautic_contact
+from api.wordpress import wordpress_blueprint
 from models import db
 from datetime import timedelta
 from utils.common import get_bucket_name
@@ -77,6 +78,7 @@ app.register_blueprint(log_blueprint, url_prefix='/api')
 app.register_blueprint(ticket_blueprint, url_prefix='/api')
 app.register_blueprint(shopify_blueprint, url_prefix='/api')
 app.register_blueprint(payment_blueprint)
+app.register_blueprint(wordpress_blueprint, url_prefix='/api')
 
 get_bucket_name()
 @app.route("/")
