@@ -527,8 +527,6 @@ class Order(db.Model):
     def get_by_id(id):
         return Order.query.filter_by(id=id).first()
     
-
-
     @staticmethod
     def get_by_user(id):
         return Order.query.filter_by(user_id=id).all()
@@ -879,6 +877,56 @@ class ShopInfo(db.Model):
     
     def __repr__(self):
         return f"<ShopInfo {self.id}>"
+
+class WordPressInfor(db.Model):
+    __tablename__="wordpress_info"
+    id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
+    wordpress = db.Column(db.String(255), nullable=False)
+    state = db.Column(db.String(255), nullable=False)
+    code = db.Column(db.String(255), nullable=True)
+    wordpress_token = db.Column(db.String(255), nullable=True)
+    connected_bot = db.Column(db.String(255), nullable=True)
+    time_stamp = db.Column(db.String(255), nullable=True)
+    hmac_header = db.Column(db.String(255), nullable=True)
+
+    def __init__(self, shop, shop_token, shopify_token):
+        self.shop = shop
+        self.shop_token = shop_token
+        self.shopify_token = shopify_token
+
+    
+    @staticmethod
+    def get_by_wordpress(website_url):
+        db_wordpress = WordPressInfor.query.filter_by(wordpress=website_url).first()
+        return db_wordpress
+
+    @staticmethod
+    def check_wordpress_exist(website_url , access_token):
+        db_wordpress = WordPressInfor.query.filter_by(wordpress=website_url).first()  
+        print("db_wordpress_exist-->>", db_wordpress)  
+        
+        if db_wordpress:  
+            # If the wordpress entry exists but the access_token is different, update it  
+            if db_wordpress.wordpress_token != access_token:  
+                db_wordpress.wordpress_token = access_token  
+                db.session.commit()  # Commit the changes  
+                print("Updated access_token for", website_url)  
+                return False  # Indicate that the access token was updated  
+            else:  
+                print("Access token is the same, no update needed.")  
+                return True  # Indicate that no update was needed  
+        else:  
+            # If the record does not exist, create a new one  
+            new_wordpress_info = WordPressInfor(  
+                wordpress=website_url,  
+                wordpress_token=access_token  
+            )  
+            db.session.add(new_wordpress_info)  
+            db.session.commit()  # Commit the new record  
+            print("Created new WordPress entry for", website_url)  
+            return True  # Indicate that a new record was created  
+
+        
     
 class ProudctsTable(db.Model):
     # __bind_key__ = 'shopify'
