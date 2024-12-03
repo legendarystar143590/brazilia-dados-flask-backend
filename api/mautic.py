@@ -277,6 +277,7 @@ def mautic_reset_password(data, mauticId):
         if response.status_code == 200:
             print("Sent password reset mail successfully")
             response_data = response.json()
+            print(response_data)
             # Checking response
             return response_data['success']
         else:
@@ -306,7 +307,8 @@ def mautic_send_verfication_link(verification_link, mauticId):
             'Accept': 'application/json',
             'Content-Type': 'application/json',
         }
-
+        print(f"Mautic Id is : {mauticId}")
+        print(f"Access Token:: {access_token}")
         # Sending the POST request
         response = requests.post(update_user_url, data=payload_string, headers=headers)
         

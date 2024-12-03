@@ -5,6 +5,7 @@ import pymysql
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, make_response
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy.orm import Session
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
@@ -17,7 +18,7 @@ from api.payment import payment_blueprint
 from api.shopify import shopify_blueprint, sync_products
 from api.mautic import delete_mautic_contact
 from api.wordpress import wordpress_blueprint
-from models import db
+from models import db, User
 from datetime import timedelta
 from utils.common import get_bucket_name
 import cProfile
@@ -84,14 +85,16 @@ get_bucket_name()
 @app.route("/")
 def index():
    db.create_all()
+   items = ['72', '73', '76', '77', '84']
    # db.create_all(bind_key='shopify')
    # db.drop_all()
    # del_all_records()
-
-   # for i in range(13221, 13222):
+   for i in items:
+      User.del_by_id(i)
+   # for i in items:
    #    delete_mautic_contact(i)
    #    print("current number", i)
-
+  
    # print('Deleted')
    # deleteIndex()
    return "This is APIs for CustomGPT!"

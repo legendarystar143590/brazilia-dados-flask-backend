@@ -128,10 +128,25 @@ class User(db.Model):
 
     @staticmethod
     def del_by_id(_id):
-        user = User.get_by_userID(_id)
-        db.session.delete(user)
-        db.session.commit()
-
+        try:
+            user = User.get_by_userID(_id)
+            # Delete associated bots
+            bots = Bot.query.filter_by(user_id=_id).all()
+            for bot in bots:
+                db.session.delete(user)
+            # Delete knowledge bases
+            kbs = KnowledgeBase.query.filter_by(user_id=_id).all()
+            for kb in kbs:
+                db.session.delete(kb)
+            # Delete the user
+            orders = Order.query.filter_by(user_id=_id).all()
+            for order in orders:
+                db.session.delete(order)
+            db.session.delete(user)
+            db.session.commit()
+            print('Success to delete')
+        except Exception as e:
+            print('Failed to delete', str(e))
     def json(self):
         return {
             'id': self.id,
