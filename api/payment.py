@@ -65,11 +65,10 @@ def create_checkout_session():
                 },
             ],
             mode='subscription',
-            # payment_method_types=['card'],
-            success_url=request.headers.get('origin') + '/?success=true',
-            cancel_url=request.headers.get('origin') + '/?canceled=true',
+            success_url=request.headers.get('origin') + '/billing-plan?success=true',
+            cancel_url=request.headers.get('origin') + '/billing-plan?success=false',
         )
-        return jsonify({'session_url':session.url}), 201
+        return jsonify({'sessionId':session.url}), 201
 
     except stripe.error.StripeError as e:
         return jsonify({'error': str(e), 'statusCode': e.http_status}), e.http_status
