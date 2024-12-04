@@ -66,7 +66,7 @@ def get_tickets():
 def del_ticket():
     try:
         data = request.get_json()
-        ticketId = data['currentItem']
+        ticketId = data['currentTicketId']
         orders = Order.del_by_id(ticketId)
         return jsonify({'status':'success'}), 201
 
