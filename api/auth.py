@@ -4,7 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from flask_cors import cross_origin
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from validate_email import validate_email
-from models import User, Bot
+from models import User, Bot, KnowledgeBase
 import logging
 import hashlib
 import datetime
@@ -276,7 +276,7 @@ def send_link():
     serializer = URLSafeTimedSerializer(current_app.config['JWT_SECRET_KEY'])
     verification_token = serializer.dumps(email, salt='email-confirm')
     verification_link = f'https://login.aiana.io/signup/verify-email?token={verification_token}'
-    if mautic_send_verfication_link(verification_link, user.mauticId) == 1:
+    if mautic_send_verfication_link(verification_link, user.mauticId) == 'success':
         User.save_verification_token(email, verification_token)
         return jsonify({'message': 'New verification email is successfully sent. Please, check your email...'}), 200
     else:

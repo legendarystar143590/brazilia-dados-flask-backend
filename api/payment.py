@@ -45,6 +45,36 @@ def create_customer_id(email):
     customer = stripe.Customer.create(email=email)
     return customer.id
 
+@payment_blueprint.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    try:
+        data = request.get_json()
+        price_id = data.get('priceId')
+        user_email = data.get('email')
+        print(price_id)
+        if not price_id:
+            return jsonify({'error': 'Price ID is required'}), 400
+
+        session = stripe.checkout.Session.create(
+            customer_email=user_email,
+            # submit_type='subscribe',
+            line_items=[
+                {
+                    'price': price_id,
+                    'quantity': 1,
+                },
+            ],
+            mode='subscription',
+            success_url=request.headers.get('origin') + '/billing-plan?success=true',
+            cancel_url=request.headers.get('origin') + '/billing-plan?success=false',
+        )
+        return jsonify({'sessionId':session.url}), 201
+
+    except stripe.error.StripeError as e:
+        return jsonify({'error': str(e), 'statusCode': e.http_status}), e.http_status
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 @payment_blueprint.route('/create_new_url', methods=['POST'])
 def create_new_url():
     try:
