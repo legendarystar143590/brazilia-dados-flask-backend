@@ -317,7 +317,7 @@ def mautic_send_verfication_link(verification_link, mauticId):
             print("Sent email verification link mail successfully")
             response_data = response.json()
             # Checking response
-            return response_data['success']
+            return 'success'
         else:
             return 'error'
         
