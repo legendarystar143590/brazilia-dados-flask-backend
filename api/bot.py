@@ -299,6 +299,9 @@ def query():
         session_id = data['sessionId']
         created_at = data['createdAt']
         website = data['website']
+        # Remove trailing slash if present
+        website = website.rstrip('/')
+
         print(website)
         # Check domain
         reg_websites = RegisteredWebsite.get_by_bot_id(bot_id)
