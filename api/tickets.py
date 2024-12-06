@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from models import Bot, Order, ChatLog, User
 from utils.provider import generate
+from utils.common import get_url_from_name
 from flask_jwt_extended import jwt_required
 from datetime import datetime
 from api.mautic import book_ticket
@@ -53,6 +54,11 @@ def get_tickets():
         orders_list = []
         for order in orders:
             order_json = order.json()
+            bot = Bot.query.filter_by(id=order.bot_name).first()
+            if bot.avatar:
+                order_json['bot_avatar'] = get_url_from_name(bot.avatar)
+            else:
+                order_json['bot_avatar'] = ''            
             orders_list.append(order_json)
 
         return jsonify(orders_list), 200
