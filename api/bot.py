@@ -246,7 +246,6 @@ def update_chatbot():
         domain = data['website_domain']
         website_unique_id = data['website_unique_id']
         unique_filename = ''
-        print(bot.avatar)
         if avatar:
             if bot.avatar:
                 unique_filename = bot.avatar
@@ -280,7 +279,6 @@ def update_chatbot():
                 print("Domain removed")
         else:
             existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
-            print(existing_website.user_id, user_id)
             if existing_website and existing_website.user_id == int(user_id):
                 print("visit this function")
                 existing_website.bot_id = botId
