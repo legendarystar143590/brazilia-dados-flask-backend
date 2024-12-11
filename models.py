@@ -226,6 +226,13 @@ class Bot(db.Model):
     @staticmethod
     def del_by_id(_id):
         bot = Bot.get_by_id(_id)
+        db_registeredWebsite = RegisteredWebsite.query.filter_by(bot_id=_id).first()
+        if db_registeredWebsite:
+            db.session.delete(db_registeredWebsite)
+        if Conversation.query.filter_by(bot_id=_id).first():
+            Conversation.del_by_bot_id(_id)
+        if Order.query.filter_by(bot_name=_id).first():
+            Order.del_by_bot_id(_id)        
         chatlogs = ChatLog.query.filter_by(bot_name=_id).all()
         for chatlog in chatlogs:
             db.session.delete(chatlog)
@@ -559,6 +566,17 @@ class Order(db.Model):
         """Deletes all orders for a given user_id"""
         try:
             num_rows_deleted = db.session.query(cls).filter(cls.user_id == user_id).delete()
+            db.session.commit()
+            return num_rows_deleted
+        except Exception as e:
+            db.session.rollback()
+            raise e
+    
+    @classmethod
+    def del_by_bot_id(cls, bot_id):
+        """Deletes all orders for a given user_id"""
+        try:
+            num_rows_deleted = db.session.query(cls).filter(cls.bot_name == bot_id).delete()
             db.session.commit()
             return num_rows_deleted
         except Exception as e:
