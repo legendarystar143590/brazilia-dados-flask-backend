@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
-from models import Bot, KnowledgeBase, Conversation, ChatLog, BillingPlan, User, RegisteredWebsite, ShopInfo
+from models import Bot, KnowledgeBase, Conversation, ChatLog, BillingPlan, User, RegisteredWebsite, ShopInfo, Order
 from flask_jwt_extended import jwt_required
 from sqlalchemy.exc import IntegrityError
 from utils.provider import generate
@@ -180,13 +180,17 @@ def del_bot():
             return jsonify({'error': 'bot_id is required'}), 400
 
         db_bot = Bot.query.filter_by(id=bot_id).first()
+
         if not db_bot:
-            return jsonify({'error': 'Bot not found'}), 404
-        if RegisteredWebsite.query.filter_by(bot_id=bot_id).first():
-            RegisteredWebsite.del_by_bot_id(bot_id)
+            return jsonify({'error': 'Bot not found'}), 404        
         print(db_bot)
+
         if ShopInfo.query.filter_by(connected_bot=db_bot.index).first():
-            return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400
+            return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400        
+
+        if Order.query.filter_by(bot_name=bot_id).first():
+            Order.del_by_bot_id(bot_id)
+
         Bot.del_by_id(bot_id)
         return jsonify({'message':'success'}), 201
 

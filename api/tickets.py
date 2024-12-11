@@ -55,10 +55,11 @@ def get_tickets():
         for order in orders:
             order_json = order.json()
             bot = Bot.query.filter_by(id=order.bot_name).first()
-            if bot.avatar:
-                order_json['bot_avatar'] = get_url_from_name(bot.avatar)
-            else:
-                order_json['bot_avatar'] = ''            
+            if bot:
+                if bot.avatar:
+                    order_json['bot_avatar'] = get_url_from_name(bot.avatar)
+                else:
+                    order_json['bot_avatar'] = ''            
             orders_list.append(order_json)
 
         return jsonify(orders_list), 200
