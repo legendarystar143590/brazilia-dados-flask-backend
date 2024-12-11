@@ -182,6 +182,8 @@ def del_bot():
         db_bot = Bot.query.filter_by(id=bot_id).first()
         if not db_bot:
             return jsonify({'error': 'Bot not found'}), 404
+        if RegisteredWebsite.query.filter_by(bot_id=bot_id).first():
+            RegisteredWebsite.del_by_bot_id(bot_id)
         print(db_bot)
         if ShopInfo.query.filter_by(connected_bot=db_bot.index).first():
             return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400
@@ -269,16 +271,21 @@ def update_chatbot():
 
         registered_website = RegisteredWebsite.query.filter_by(bot_id=botId).first()
         if registered_website:
-            registered_website.domain = domain
-            registered_website.save()
+            if domain and domain != 'undefined':
+                registered_website.domain = domain
+                registered_website.save()
+                print(f"Domain updated to: {domain}")
+            elif domain == 'undefined' or domain == '':
+                RegisteredWebsite.del_by_bot_id(botId)
+                print("Domain removed")
         else:
             existing_website = RegisteredWebsite.query.filter_by(domain=domain).first()
-            print(existing_website)
-            if existing_website and existing_website.user_id == user_id:
+            print(existing_website.user_id, user_id)
+            if existing_website and existing_website.user_id == int(user_id):
                 print("visit this function")
                 existing_website.bot_id = botId
                 existing_website.save()
-            elif existing_website and existing_website.user_id != user_id:
+            elif existing_website and existing_website.user_id != int(user_id):
                 print("user_ID", user_id, existing_website.user_id)
                 return jsonify({"error": "Domain already registered by another user."}), 400
             elif domain and domain != 'undefined':
