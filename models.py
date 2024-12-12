@@ -133,7 +133,7 @@ class User(db.Model):
             # Delete associated bots
             bots = Bot.query.filter_by(user_id=_id).all()
             for bot in bots:
-                db.session.delete(user)
+                Bot.del_by_id(bot.id)
             # Delete knowledge bases
             kbs = KnowledgeBase.query.filter_by(user_id=_id).all()
             for kb in kbs:
@@ -527,12 +527,12 @@ class Order(db.Model):
     content = db.Column(db.String(255), nullable=False)
     user_index = db.Column(db.String(255), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    bot_name = db.Column(db.String(255), nullable=False)
+    bot_id = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.String(255), nullable=False)
 
-    def __init__(self, sessoin_id, user_id, website, user_index, bot_name, email, status, content, createdAt):
+    def __init__(self, sessoin_id, user_id, website, user_index, bot_id, email, status, content, createdAt):
         self.sessoin_id = sessoin_id
-        self.bot_name = bot_name
+        self.bot_id = bot_id
         self.user_id = user_id
         self.user_index = user_index
         self.website = website
@@ -576,7 +576,7 @@ class Order(db.Model):
     def del_by_bot_id(cls, bot_id):
         """Deletes all orders for a given user_id"""
         try:
-            num_rows_deleted = db.session.query(cls).filter(cls.bot_name == bot_id).delete()
+            num_rows_deleted = db.session.query(cls).filter(cls.bot_id == bot_id).delete()
             db.session.commit()
             return num_rows_deleted
         except Exception as e:
@@ -601,7 +601,7 @@ class Order(db.Model):
             'email': self.email,
             'user_id': self.user_id,
             'user_index': self.user_index,
-            'bot_name': self.bot_name,
+            'bot_id': self.bot_id,
             'website': self.website,
             'status': self.status,
             'content': self.content,
