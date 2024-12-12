@@ -11,8 +11,7 @@ ticket_blueprint = Blueprint('ticket_blueprint', __name__)
 
 @ticket_blueprint.route('/book', methods=['POST'])
 def book():
-    try:
-        
+    try:        
         data = request.get_json()
         bot_id = data['botId']
         userIndex = data['userIndex']
@@ -24,7 +23,7 @@ def book():
         print(createdAt)
         user = User.get_by_index(userIndex)
         print("here is website >>> ", website)
-        order = Order(sessoin_id=session_id, user_id=user.id, website=website, user_index=userIndex, bot_name=bot_id, email=email, status="open", content=content, createdAt=createdAt)
+        order = Order(sessoin_id=session_id, user_id=user.id, website=website, user_index=userIndex, bot_id=bot_id, email=email, status="open", content=content, createdAt=createdAt)
         order.save()
         chat_log = ChatLog.get_by_session(session_id)
         chat_log.result = 'Email-Sent'
@@ -38,7 +37,6 @@ def book():
             return jsonify({'message': 'success'}), 201
         else:
             return jsonify({'message': 'error'}), 500
-
         
     except Exception as e:
         print(str(e))
@@ -54,12 +52,13 @@ def get_tickets():
         orders_list = []
         for order in orders:
             order_json = order.json()
-            bot = Bot.query.filter_by(id=order.bot_name).first()
+            bot = Bot.query.filter_by(id=order.bot_id).first()
             if bot:
                 if bot.avatar:
                     order_json['bot_avatar'] = get_url_from_name(bot.avatar)
                 else:
-                    order_json['bot_avatar'] = ''            
+                    order_json['bot_avatar'] = '' 
+                order_json['bot_name'] = bot.name
             orders_list.append(order_json)
 
         return jsonify(orders_list), 200

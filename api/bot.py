@@ -188,9 +188,6 @@ def del_bot():
         if ShopInfo.query.filter_by(connected_bot=db_bot.index).first():
             return jsonify({'error': 'Bot is in use. Please delete the shop first.'}), 400        
 
-        if Order.query.filter_by(bot_name=bot_id).first():
-            Order.del_by_bot_id(bot_id)
-
         Bot.del_by_id(bot_id)
         return jsonify({'message':'success'}), 201
 
