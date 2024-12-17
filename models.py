@@ -233,7 +233,7 @@ class Bot(db.Model):
             Conversation.del_by_bot_id(_id)
         if Order.query.filter_by(bot_id=_id).first():
             Order.del_by_bot_id(_id)        
-        chatlogs = ChatLog.query.filter_by(bot_id=_id).all()
+        chatlogs = ChatLog.query.filter_by(bot_name=_id).all()
         for chatlog in chatlogs:
             db.session.delete(chatlog)
         db.session.delete(bot)
