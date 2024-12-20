@@ -51,6 +51,8 @@ def generate(bot_id, session_id, query, knowledge_base, website):
     
     print("Generating the knoledgebase >>>", knowledge_base)
     result = get_answer(bot_id, session_id, query, knowledge_base, website)
-
-    return result
+    if result == "Network error":
+        return "Network error"
+    else:
+        return result
   
