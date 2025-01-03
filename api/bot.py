@@ -306,7 +306,7 @@ def query():
         created_at = data['createdAt']
         website = data['website']
         # Remove trailing slash if present
-        website = website.rstrip('/')
+        # website = website.rstrip('/')
 
         print(website)
         # Check domain
@@ -315,7 +315,7 @@ def query():
             if 'https://login.aiana.io' == website:
                 return True
             for site in reg_websites:
-                if site.domain == website:
+                if website.startswith(site.domain):
                     return True
             return False
         if check_domain() == False:
