@@ -326,6 +326,7 @@ def query():
         user = User.get_by_userID(id=user_id)
         sessionLimits = BillingPlan.query.filter_by(code=user.billing_plan).first().max_sessions_per_month
         # print(sessionLimits)
+        # print(bot_id)
         if sessionLimits <= len(logs) and website != None:
             if chat_log is None:
                 return jsonify({'error': 'Maximum Session Exceeds'}), 403
