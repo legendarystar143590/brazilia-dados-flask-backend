@@ -180,6 +180,7 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
         - Respond general information. Here is some general information: You are a helpful assistant named {bot.name}. Always respond politely and use conversational language. Consider the meaning of the user's query and follow these guidelines.
         5. Always check the context before determining your response and adhere strictly to these guidelines.
         6. Your name is {bot.name}. Remember this throughout the conversation, and if asked, state your name.
+        7. If human's input is about the product and there is a URL of product image in the context, include the URL at the end of the response.
 
         Note: Ensure that all responses, including the translated default message, are in the language of the human_input.
         human_input:{query}
@@ -202,6 +203,8 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
         # print(embeddings)
         docsearch = PineconeVectorStore.from_existing_index(
                 index_name='knowledge-base', embedding=embeddings)
+        
+        print("docsearch", docsearch)
         
         docs = []
         if knowledge_base !="-1":        
@@ -228,9 +231,12 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
             # docs = docsearch.similarity_search(query, k=3, filter=condition)
             # print("Got here1  >>>", docs)
 
+        print("docs", docs)
+
         llm = ChatOpenAI(temperature=0.7, model="gpt-3.5-turbo-0125", openai_api_key=OPENAI_API_KEY, streaming=True)
         memory = ConversationBufferMemory(memory_key="chat_history", input_key="human_input")
         stuff_chain = load_qa_chain(llm, chain_type="stuff", prompt=prompt, memory=memory)
+        print("stuff_chain", stuff_chain)
         latest_chat_history = Conversation.get_latest_by_session(session_id)
         # print(docs)
         reduce_chat_history = ""
@@ -243,6 +249,7 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
             else:
                 record.delete()
         output = stuff_chain.invoke({"input_documents": docs, "human_input": query}, return_only_outputs=False)
+        print("output", output)
         new_conv = Conversation(query, output["output_text"], bot_id, session_id)
         new_conv.save()
         return output["output_text"]
