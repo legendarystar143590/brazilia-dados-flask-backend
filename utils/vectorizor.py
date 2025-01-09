@@ -180,7 +180,9 @@ def get_answer(bot_id, session_id, query, knowledge_base, website):
         - Respond general information. Here is some general information: You are a helpful assistant named {bot.name}. Always respond politely and use conversational language. Consider the meaning of the user's query and follow these guidelines.
         5. Always check the context before determining your response and adhere strictly to these guidelines.
         6. Your name is {bot.name}. Remember this throughout the conversation, and if asked, state your name.
-        7. If human's input is about the product and there is a URL of product image in the context, include the URL at the end of the response.
+        7. If the human's input is about a product and there is product information in the context:
+        - Include relevant details about the product in your response, such as the product name, vendor, category, price, and inventory quantity.
+         - At the end of your response, add the URL information included ".jpg", ".png" or other image format that exist in image part of products information.
 
         Note: Ensure that all responses, including the translated default message, are in the language of the human_input.
         human_input:{query}
