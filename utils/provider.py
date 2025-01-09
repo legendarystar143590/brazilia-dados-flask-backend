@@ -41,7 +41,7 @@ def tiktoken_text_split(text):
 
 def tiktoken_products_split(text):
     products_splitter = CharacterTextSplitter(
-                separator = "}", chunk_size=1200, chunk_overlap=200, length_function = len,
+                separator = "},", chunk_size=1500, chunk_overlap=200, length_function = len,
             )
     chunks = products_splitter.split_text(text)
     print("Chunks length >>>>", len(chunks))
